@@ -15,13 +15,22 @@ jobs:
   mysql-integration-test:
     docker:
       - image: circleci/golang:1.10
+      - image: circleci/mysql:5.5-ram
+        environment:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: grafana_tests
+          MYSQL_USER: grafana
+          MYSQL_PASSWORD: password
     working_directory: /go/src/github.com/grafana/grafana
     steps:
         - checkout
-        - setup_remote_docker
+        - run: sudo apt update
+        - run: sudo apt install -y mysql-client
+        - run: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
+        - run: cat docker/blocks/mysql_tests/setup.sql | mysql -h 127.0.0.1 -P 3306 -u root -prootpass
         - run:
             name: mysql integration tests
-            command: './scripts/mysql-integration-tests.sh'
+            command: 'GRAFANA_TEST_DB=mysql go test ./pkg/...'
 
 
 workflows:
